@@ -17,16 +17,22 @@ ALERT_THRESHOLD = 5.0
 app = Flask(__name__)
 client = Groq(api_key=GROQ_API_KEY)
 
-# صفحة ويب بسيطة عشان UptimeRobot يزورها
+# صفحة ويب بسيطة عشان UptimeRobot يزورها والسيرفر يفضل صاحي
 @app.route('/')
 def home():
     return "Gold Monitor Bot is ALIVE and running!"
 
 def get_market_data():
     try:
-        gold = yf.Ticker("GC=F").history(period="1d")['Close'].iloc[-1]
-        dxy = yf.Ticker("DX-Y.NYB").history(period="1d")['Close'].iloc[-1]
-        tnx = yf.Ticker("^TNX").history(period="1d")['Close'].iloc[-1]
+        # إنشاء متصفح وهمي لخداع ياهو فاينانس ومنع الحظر على سيرفرات Render
+        session = requests.Session()
+        session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+        })
+        
+        gold = yf.Ticker("GC=F", session=session).history(period="1d")['Close'].iloc[-1]
+        dxy = yf.Ticker("DX-Y.NYB", session=session).history(period="1d")['Close'].iloc[-1]
+        tnx = yf.Ticker("^TNX", session=session).history(period="1d")['Close'].iloc[-1]
         return gold, dxy, tnx
     except Exception as e:
         print(f"حدث خطأ أثناء سحب البيانات: {e}")
@@ -91,6 +97,7 @@ def run_bot():
         current_gold, current_dxy, current_tnx = get_market_data()
         if current_gold and current_dxy and current_tnx:
             if last_gold_price is None:
+                print("إرسال التقرير الافتتاحي الأول...")
                 last_gold_price = current_gold
                 report = generate_report(current_gold, current_dxy, current_tnx, is_alert=False)
                 send_to_telegram(report)
@@ -98,16 +105,21 @@ def run_bot():
             
             price_difference = current_gold - last_gold_price
             if abs(price_difference) >= ALERT_THRESHOLD:
+                print(f"🚨 استثناء عاجل! تحرك السعر بمقدار {price_difference:.2f} دولار. جاري التحديث...")
                 report = generate_report(current_gold, current_dxy, current_tnx, is_alert=True, price_diff=price_difference)
                 send_to_telegram(report)
                 last_gold_price = current_gold 
                 minutes_counter = 0 
             
             elif minutes_counter >= 15:
+                print("مرت 15 دقيقة.. إرسال التقرير الروتيني المحدث...")
                 report = generate_report(current_gold, current_dxy, current_tnx, is_alert=False)
                 send_to_telegram(report)
                 last_gold_price = current_gold 
                 minutes_counter = 0 
+        else:
+            print("لم يتم العثور على بيانات في هذه الدورة. سيتم المحاولة مجدداً.")
+            
         time.sleep(60)
         minutes_counter += 1
 
