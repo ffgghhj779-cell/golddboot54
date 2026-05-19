@@ -24,15 +24,10 @@ def home():
 
 def get_market_data():
     try:
-        # إنشاء متصفح وهمي لخداع ياهو فاينانس ومنع الحظر على سيرفرات Render
-        session = requests.Session()
-        session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
-        })
-        
-        gold = yf.Ticker("GC=F", session=session).history(period="1d")['Close'].iloc[-1]
-        dxy = yf.Ticker("DX-Y.NYB", session=session).history(period="1d")['Close'].iloc[-1]
-        tnx = yf.Ticker("^TNX", session=session).history(period="1d")['Close'].iloc[-1]
+        # مكتبة yfinance بتعالج الحظر داخلياً دلوقتي فمش محتاجين متصفح وهمي
+        gold = yf.Ticker("GC=F").history(period="1d")['Close'].iloc[-1]
+        dxy = yf.Ticker("DX-Y.NYB").history(period="1d")['Close'].iloc[-1]
+        tnx = yf.Ticker("^TNX").history(period="1d")['Close'].iloc[-1]
         return gold, dxy, tnx
     except Exception as e:
         print(f"حدث خطأ أثناء سحب البيانات: {e}")
