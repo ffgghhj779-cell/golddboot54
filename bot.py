@@ -14,7 +14,7 @@ TELEGRAM_CHAT_ID = "7737655407"
 
 # إعدادات مؤسسية تحافظ على الباقة وتضمن استقرار النظام
 ALERT_THRESHOLD = 8.0 
-ROUTINE_MINUTES = 60  
+ROUTINE_MINUTES = 30
 # ==========================================================
 
 app = Flask(__name__)
