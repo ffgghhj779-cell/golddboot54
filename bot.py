@@ -7,24 +7,27 @@ from flask import Flask
 from threading import Thread
 import os
 
-# ================= الإعدادات الآمنة =================
+# ================= الإعدادات الآمنة والنهائية =================
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY") 
 TELEGRAM_BOT_TOKEN = "8678714877:AAE2v6jeeYzsNFYj_83rXK32RJEA7fszQew"
 TELEGRAM_CHAT_ID = "7737655407"
-ALERT_THRESHOLD = 5.0 
-# ===================================================
+
+# إعدادات مؤسسية تحافظ على الباقة وتضمن استقرار النظام
+ALERT_THRESHOLD = 8.0 
+ROUTINE_MINUTES = 60  
+# ==========================================================
 
 app = Flask(__name__)
 
 def get_groq_client():
     if not GROQ_API_KEY:
-        print("❌ خطأ حرج: لم يتم العثور على GROQ_API_KEY في إعدادات البيئة (Environment Variables)!")
+        print("❌ خطأ: لم يتم العثور على GROQ_API_KEY")
         return None
     return Groq(api_key=GROQ_API_KEY)
 
 @app.route('/')
 def home():
-    return "Gold Monitor Bot is ALIVE and running!"
+    return "Gold Monitor Bot is ALIVE and running stably!"
 
 def get_market_data():
     try:
@@ -39,13 +42,12 @@ def get_market_data():
 def generate_report(gold, dxy, tnx, is_alert=False, price_diff=0.0):
     client = get_groq_client()
     if not client:
-        return "حدث خطأ: مفتاح API الخاص بـ Groq غير مضبوط في السيرفر."
+        return None
 
     date_now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     report_type = "[تنبيه استثنائي عاجل لحركة سعرية مفاجئة]" if is_alert else "[تقرير روتيني مفصل ومدروس]"
     alert_text = f"مقدار التغير المفاجئ المكتشف: {round(price_diff, 2)} دولار" if is_alert else ""
 
-    # بناء النص بطريقة آمنة جداً تمنع أخطاء النسخ واللصق (بدون علامات تنصيص ثلاثية)
     prompt_lines = [
         "أنت كبير المحللين الاقتصاديين ورئيس قسم أبحاث السلع في بنك استثماري دولي.",
         f"البيانات اللحظية الحالية المستلمة في ({date_now}):",
@@ -59,22 +61,21 @@ def generate_report(gold, dxy, tnx, is_alert=False, price_diff=0.0):
         "المطلوب منك صياغة تحليل مالي متعمق ومؤسسي (باللغة العربية الفصحى فقط)، مع الالتزام الصارم بالآتي:",
         "1. التحليل المالي: اشرح حركة الذهب بناءً على 'قانون الارتباط العكسي الرياضي' مع مؤشر DXY، وتأثير 'تكلفة الفرصة البديلة المستندة إلى عوائد السندات'.",
         "2. الأرقام والمستويات: حدد الدعوم والمقاومات اللحظية القريبة بناءً على النطاق السعري الفعلي لليوم (بفارق يتراوح بين 10 إلى 30 دولار).",
-        "3. البلاغة وعدم التكرار: يُمنع التكرار اللفظي (مثل تكرار جملة 'نلاحظ أن'). استخدم مفردات مالية متنوعة واجعل الصياغة طبيعية واحترافية.",
-        "4. السيناريوهات للمستثمر الفيزيكال: صغ سيناريوهات واضحة للمستثمرين الذين يشترون الذهب الفعلي (فيزيكال) بأسعار الشاشة اللحظية ويستلمونه يداً بيد.",
-        "5. شجرة السيناريوهات: يُمنع تماماً استخدام أي أكواد برمجية (مثل Mermaid). بدلاً من ذلك، ارسم في نهاية التقرير 'شجرة سيناريوهات نصية' أنيقة ومنسقة تناسب العرض على شاشة تطبيق تليجرام. استخدم الرموز والأسهم لتوضيح مسار السعر هكذا:",
+        "3. البلاغة وعدم التكرار: يُمنع التكرار اللفظي. استخدم مفردات مالية متنوعة واجعل الصياغة طبيعية واحترافية.",
+        "4. السيناريوهات للمستثمر الفيزيكال: صغ سيناريوهات واضحة للمستثمرين الذين يشترون الذهب الفعلي بأسعار الشاشة اللحظية ويستلمونه يداً بيد.",
+        "5. شجرة السيناريوهات: يُمنع استخدام الأكواد. ارسم 'شجرة سيناريوهات نصية' تناسب تليجرام باستخدام الرموز:",
         "📈 سيناريو الصعود: [الشرح والهدف 🎯]",
         "📉 سيناريو الهبوط: [الشرح والهدف 🎯]",
         "",
-        "6. إخلاء المسؤولية الإلزامي: يجب أن تضيف النص التالي حرفياً في نهاية التقرير تماماً وتفصله بسطر فارغ:",
-        "⚠️ إخلاء مسؤولية: الأسعار الواردة في هذا التقرير هي أسعار حقيقية ومباشرة من الأسواق العالمية لحظة إصداره. أما التحليلات، والدعوم، والمقاومات، والسيناريوهات فهي نتاج خوارزميات ذكاء اصطناعي (AI) تُبنى على الاحتمالات الاقتصادية، وتُقدم كأداة مساعدة لمتخذي القرار وليست توصية مالية حتمية."
+        "6. إخلاء المسؤولية الإلزامي: أضف النص التالي في النهاية:",
+        "⚠️ إخلاء مسؤولية: الأسعار الواردة هي حقيقية لحظة إصداره. التحليلات هي نتاج ذكاء اصطناعي تُقدم كأداة مساعدة وليست توصية مالية حتمية."
     ]
-    
     prompt = "\n".join(prompt_lines)
 
     try:
         chat_completion = client.chat.completions.create(
             messages=[
-                {"role": "system", "content": "أنت محلل مالي أكاديمي صارم تستخدم المعادلات والقوانين الاقتصادية لتحليل الأسواق وتلتزم ببنود التقارير بدقة."},
+                {"role": "system", "content": "أنت محلل مالي أكاديمي."},
                 {"role": "user", "content": prompt}
             ],
             model="llama-3.3-70b-versatile",
@@ -82,8 +83,8 @@ def generate_report(gold, dxy, tnx, is_alert=False, price_diff=0.0):
         )
         return chat_completion.choices[0].message.content
     except Exception as e:
-        print(f"خطأ في توليد التقرير: {e}")
-        return "حدث خطأ أثناء إعداد التحليل المالي."
+        print(f"⚠️ تنبيه صامت: تم الوصول للحد الأقصى أو حدث خطأ بالسيرفر: {e}")
+        return None
 
 def send_to_telegram(message):
     protocol = "https://"
@@ -98,7 +99,7 @@ def send_to_telegram(message):
         print(f"خطأ في الإرسال لتليجرام: {e}")
 
 def run_bot():
-    print("البوت بدأ العمل بنظام المراقبة اللحظية والروتينية...")
+    print("البوت بدأ العمل بنظام المراقبة المؤسسي الآمن...")
     last_gold_price = None
     minutes_counter = 0
     
@@ -109,23 +110,26 @@ def run_bot():
                 print("إرسال التقرير الافتتاحي الأول...")
                 last_gold_price = current_gold
                 report = generate_report(current_gold, current_dxy, current_tnx, is_alert=False)
-                send_to_telegram(report)
+                if report:
+                    send_to_telegram(report)
                 minutes_counter = 0
             
             price_difference = current_gold - last_gold_price
             if abs(price_difference) >= ALERT_THRESHOLD:
                 print(f"🚨 استثناء عاجل! تحرك السعر بمقدار {price_difference:.2f} دولار. جاري التحديث...")
                 report = generate_report(current_gold, current_dxy, current_tnx, is_alert=True, price_diff=price_difference)
-                send_to_telegram(report)
-                last_gold_price = current_gold 
-                minutes_counter = 0 
+                if report:
+                    send_to_telegram(report)
+                    last_gold_price = current_gold 
+                    minutes_counter = 0 
             
-            elif minutes_counter >= 15:
-                print("مرت 15 دقيقة.. إرسال التقرير الروتيني المحدث...")
+            elif minutes_counter >= ROUTINE_MINUTES:
+                print(f"مرت {ROUTINE_MINUTES} دقيقة.. إرسال التقرير الروتيني المحدث...")
                 report = generate_report(current_gold, current_dxy, current_tnx, is_alert=False)
-                send_to_telegram(report)
-                last_gold_price = current_gold 
-                minutes_counter = 0 
+                if report:
+                    send_to_telegram(report)
+                    last_gold_price = current_gold 
+                    minutes_counter = 0 
         else:
             print("لم يتم العثور على بيانات في هذه الدورة. سيتم المحاولة مجدداً.")
             
